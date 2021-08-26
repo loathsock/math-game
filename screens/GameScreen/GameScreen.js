@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import {
   StyleSheet,
   Text,
@@ -16,12 +16,10 @@ import {
   randomizedOperationNumbers,
   shuffleArray,
   operationEval,
-  correctAnswer,
   correctAnswerForPlayerOne,
   correctAnswerForPlayerTwo,
-  gameOver,
 } from "./gameLogic";
-import GameOver from "./GameOver";
+import { Audio } from "expo-av";
 
 const GameScreen = () => {
   const [numbers, setNumbers] = useState({});
@@ -34,6 +32,43 @@ const GameScreen = () => {
   const [playerTwoCounter, setPlayerTwoCounter] = useState(0);
   const [playerOneWins, setplayerOneWins] = useState(false);
   const [playerTwoWins, setplayerTwoWins] = useState(false);
+  const [gameRestart, setGameRestart] = useState(false);
+  const [correctSoundEffect, setCorrectSoundEffect] = useState();
+  const [wrongSoundEffect, setWrongSoundEffect] = useState();
+
+  // SOUND TESTING
+
+  async function playCorrectSoundEffect() {
+    const { sound } = await Audio.Sound.createAsync(require("./correct.wav"));
+    setCorrectSoundEffect(sound);
+
+    await sound.playAsync();
+  }
+
+  async function playWrongSoundEffect() {
+    const { sound } = await Audio.Sound.createAsync(require("./wrong.wav"));
+    setWrongSoundEffect(sound);
+
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return correctSoundEffect
+      ? () => {
+          correctSoundEffect.unloadAsync();
+        }
+      : undefined;
+  }, [correctSoundEffect]);
+
+  useEffect(() => {
+    return wrongSoundEffect
+      ? () => {
+          wrongSoundEffect.unloadAsync();
+        }
+      : undefined;
+  }, [wrongSoundEffect]);
+
+  // -------------------------------
 
   const nums = randomizedOperationNumbers();
   const randOp = randomizedOperationFuncs();
@@ -80,8 +115,6 @@ const GameScreen = () => {
   useEffect(() => {
     const shuffledArray = shuffleArray(choices);
     setShuffledArrayChoices(shuffledArray);
-    console.log(shuffledArrayChoices);
-    console.log(choices);
   }, [choices]);
 
   useEffect(() => {
@@ -101,10 +134,15 @@ const GameScreen = () => {
       }
     }
     setOperation(randOp);
-    if (gameOver(playerOneCounter)) {
-      console.log(true);
-    }
   }, [updateQuestions]);
+
+  const restartGame = () => {
+    setGameRestart(true);
+    setplayerOneWins(false);
+    setplayerTwoWins(false);
+    setPlayerOneCounter(0);
+    setPlayerTwoCounter(0);
+  };
 
   return (
     <SafeAreaView
@@ -115,11 +153,46 @@ const GameScreen = () => {
       }
     >
       {playerTwoWins && (
-        <Text style={{ color: "white" }}> Player Two wins</Text>
+        <Fragment>
+          <View style={PlayersGameOverScreen.playerTwoGameOverScreen}>
+            <Text style={{ color: "white", fontSize: 24 }}> You Win</Text>
+          </View>
+
+          <View style={PlayersGameOverScreen.midScreen}>
+            <TouchableOpacity
+              onPress={restartGame}
+              style={PlayersGameOverScreen.restartButton}
+            >
+              <Text style={{ color: "white", fontSize: 24 }}>restart</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={PlayersGameOverScreen.playerOneGameOverScreen}>
+            <Text style={{ color: "white", fontSize: 24 }}> You Lose</Text>
+          </View>
+        </Fragment>
       )}
       {playerOneWins && (
-        <Text style={{ color: "white" }}> Player One Wins</Text>
+        <Fragment>
+          <View style={PlayersGameOverScreen.playerOneGameOverScreen}>
+            <Text style={{ color: "white", fontSize: 24 }}> You Win</Text>
+          </View>
+
+          <View style={PlayersGameOverScreen.midScreen}>
+            <TouchableOpacity
+              onPress={restartGame}
+              style={PlayersGameOverScreen.restartButton}
+            >
+              <Text style={{ color: "white", fontSize: 24 }}>restart</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={PlayersGameOverScreen.playerTwoGameOverScreen}>
+            <Text style={{ color: "white", fontSize: 24 }}> You Lose</Text>
+          </View>
+        </Fragment>
       )}
+
       <View
         style={
           playerTwoWins || playerOneWins
@@ -145,12 +218,14 @@ const GameScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     if (correctAnswerForPlayerTwo(choice, operationResult)) {
+                      playCorrectSoundEffect();
                       setUpdateQuestions(true);
                       setPlayerTwoCounter((prev) =>
-                        prev === 1 ? setplayerTwoWins(true) : prev + 1
+                        prev === 9 ? setplayerTwoWins(true) : prev + 1
                       );
                     }
                     if (!correctAnswerForPlayerTwo(choice, operationResult)) {
+                      playWrongSoundEffect();
                       setUpdateQuestions(true);
                       setPlayerTwoCounter((prev) =>
                         playerTwoCounter <= 0 ? (prev = 0) : prev - 1
@@ -221,12 +296,14 @@ const GameScreen = () => {
                   <TouchableOpacity
                     onPress={() => {
                       if (correctAnswerForPlayerOne(choice, operationResult)) {
+                        playCorrectSoundEffect();
                         setUpdateQuestions(true);
                         setPlayerOneCounter((prev) =>
-                          prev === 1 ? setplayerOneWins(true) : prev + 1
+                          prev === 9 ? setplayerOneWins(true) : prev + 1
                         );
                       }
                       if (!correctAnswerForPlayerOne(choice, operationResult)) {
+                        playWrongSoundEffect();
                         setUpdateQuestions(true);
                         setPlayerOneCounter((prev) =>
                           playerOneCounter <= 0 ? (prev = 0) : prev - 1
@@ -369,6 +446,51 @@ const gridStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 6,
+  },
+});
+
+const PlayersGameOverScreen = StyleSheet.create({
+  playerOneGameOverScreen: {
+    position: "absolute",
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    height: "48%",
+    width: "100%",
+    backgroundColor: "#14A9B2",
+    zIndex: -1,
+  },
+
+  playerTwoGameOverScreen: {
+    position: "absolute",
+    top: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    height: "48%",
+    width: "100%",
+    backgroundColor: "#14A9B2",
+    transform: [{ rotate: "180deg" }],
+    zIndex: -1,
+  },
+
+  midScreen: {
+    position: "relative",
+    backgroundColor: "gray",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: "4%",
+  },
+
+  restartButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    height: 60,
+    width: "26%",
+    backgroundColor: "orange",
+    color: "white",
+    borderRadius: 12,
+    fontSize: 22,
   },
 });
 
