@@ -1,6 +1,8 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, useRef } from "react";
 import {
+  Animated,
+  interpolate,
   StyleSheet,
   Text,
   View,
@@ -22,6 +24,8 @@ import {
 import { Audio } from "expo-av";
 
 const GameScreen = () => {
+  const translation = useRef(new Animated.Value(0)).current;
+  const bgColor = useRef(new Animated.Value(0)).current;
   const [numbers, setNumbers] = useState({});
   const [operationResult, setOperationResult] = useState();
   const [operation, setOperation] = useState();
@@ -36,17 +40,24 @@ const GameScreen = () => {
   const [correctSoundEffect, setCorrectSoundEffect] = useState();
   const [wrongSoundEffect, setWrongSoundEffect] = useState();
 
+  // INITIALIZING NUMBERS AND MATH OPERATION
+  const nums = randomizedOperationNumbers();
+  const randOp = randomizedOperationFuncs();
   // SOUND TESTING
 
   async function playCorrectSoundEffect() {
-    const { sound } = await Audio.Sound.createAsync(require("./correct.wav"));
+    const { sound } = await Audio.Sound.createAsync(
+      require("./../../assets/sounds/correct.wav")
+    );
     setCorrectSoundEffect(sound);
 
     await sound.playAsync();
   }
 
   async function playWrongSoundEffect() {
-    const { sound } = await Audio.Sound.createAsync(require("./wrong.wav"));
+    const { sound } = await Audio.Sound.createAsync(
+      require("./../../assets/sounds/incorrect.mp3")
+    );
     setWrongSoundEffect(sound);
 
     await sound.playAsync();
@@ -69,9 +80,6 @@ const GameScreen = () => {
   }, [wrongSoundEffect]);
 
   // -------------------------------
-
-  const nums = randomizedOperationNumbers();
-  const randOp = randomizedOperationFuncs();
 
   useEffect(() => {
     setShuffledArrayChoices([]);
@@ -118,22 +126,23 @@ const GameScreen = () => {
   }, [choices]);
 
   useEffect(() => {
-    setUpdateQuestions(false);
-    if (nums.leftHandSideNumber && nums.rightHandSideNumber) {
-      if (
-        nums.leftHandSideNumber < nums.rightHandSideNumber &&
-        randOp === "-"
-      ) {
-        const leftNum = nums.leftHandSideNumber;
-        const rightNum = nums.rightHandSideNumber;
-        nums.leftHandSideNumber = rightNum;
-        nums.rightHandSideNumber = leftNum;
-        setNumbers(nums);
-      } else {
-        setNumbers(nums);
+    setTimeout(() => {
+      setOperation(randOp);
+      if (nums.leftHandSideNumber && nums.rightHandSideNumber) {
+        if (
+          nums.leftHandSideNumber < nums.rightHandSideNumber &&
+          randOp === "-"
+        ) {
+          const leftNum = nums.leftHandSideNumber;
+          const rightNum = nums.rightHandSideNumber;
+          nums.leftHandSideNumber = rightNum;
+          nums.rightHandSideNumber = leftNum;
+          setNumbers(nums);
+        } else {
+          setNumbers(nums);
+        }
       }
-    }
-    setOperation(randOp);
+    }, 650);
   }, [updateQuestions]);
 
   const restartGame = () => {
@@ -144,6 +153,52 @@ const GameScreen = () => {
     setPlayerTwoCounter(0);
   };
 
+  // // GAME ANIMATIONS
+  // const nextQAnimation = () => {
+  //   setTimeout(() => {
+  //     translation.setValue(0);
+  //   }, 600);
+  //   Animated.timing(translation, {
+  //     toValue: 350,
+  //     duration: 600,
+  //     useNativeDriver: true,
+  //   }).start(() => OutAndInScreen());
+  // };
+
+  const OutAndInScreen = () => {
+    Animated.timing(translation, {
+      toValue: 0,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const nextQAnimation = () =>
+    Animated.sequence([
+      Animated.timing(translation, {
+        toValue: 380,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translation, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+  // const counterColor = () => {
+  //   Animated.timing(translation, {
+  //     toValue: 1,
+  //     duration: 400,
+  //     useNativeDriver: true,
+  //   }).start();
+  // };
+
+  // const COLOR = bgColor.interpolate({
+  //   inputRange: [0, 300],
+  //   outputRange: ["rgba(255, 0, 0, 1)", "rgba(0, 255, 0, 1)"],
+  // });
   return (
     <SafeAreaView
       style={
@@ -155,7 +210,7 @@ const GameScreen = () => {
       {playerTwoWins && (
         <Fragment>
           <View style={PlayersGameOverScreen.playerTwoGameOverScreen}>
-            <Text style={{ color: "white", fontSize: 24 }}> You Win</Text>
+            <Text style={{ color: "white", fontSize: 26 }}> You Win</Text>
           </View>
 
           <View style={PlayersGameOverScreen.midScreen}>
@@ -163,19 +218,19 @@ const GameScreen = () => {
               onPress={restartGame}
               style={PlayersGameOverScreen.restartButton}
             >
-              <Text style={{ color: "white", fontSize: 24 }}>restart</Text>
+              <Text style={{ color: "white", fontSize: 26 }}>restart</Text>
             </TouchableOpacity>
           </View>
 
           <View style={PlayersGameOverScreen.playerOneGameOverScreen}>
-            <Text style={{ color: "white", fontSize: 24 }}> You Lose</Text>
+            <Text style={{ color: "white", fontSize: 26 }}> You Lose</Text>
           </View>
         </Fragment>
       )}
       {playerOneWins && (
         <Fragment>
           <View style={PlayersGameOverScreen.playerOneGameOverScreen}>
-            <Text style={{ color: "white", fontSize: 24 }}> You Win</Text>
+            <Text style={{ color: "white", fontSize: 26 }}> You Win</Text>
           </View>
 
           <View style={PlayersGameOverScreen.midScreen}>
@@ -183,12 +238,12 @@ const GameScreen = () => {
               onPress={restartGame}
               style={PlayersGameOverScreen.restartButton}
             >
-              <Text style={{ color: "white", fontSize: 24 }}>restart</Text>
+              <Text style={{ color: "white", fontSize: 26 }}>restart</Text>
             </TouchableOpacity>
           </View>
 
           <View style={PlayersGameOverScreen.playerTwoGameOverScreen}>
-            <Text style={{ color: "white", fontSize: 24 }}> You Lose</Text>
+            <Text style={{ color: "white", fontSize: 26 }}> You Lose</Text>
           </View>
         </Fragment>
       )}
@@ -201,8 +256,15 @@ const GameScreen = () => {
         }
       >
         <View style={gridStyles.playerTwoGrid}>
-          <View style={gridStyles.operation}>
-            <Text style={{ color: "white", fontSize: 28 }}>
+          <Animated.View
+            style={[
+              gridStyles.operation,
+              {
+                transform: [{ translateX: translation }],
+              },
+            ]}
+          >
+            <Text style={{ color: "white", fontSize: 38 }}>
               {" "}
               {numbers.leftHandSideNumber} {""}
               {operation === "*"
@@ -210,41 +272,48 @@ const GameScreen = () => {
                 : [operation === "/" ? "÷" : operation]}{" "}
               {numbers.rightHandSideNumber}
             </Text>
-          </View>
+          </Animated.View>
 
-          <View style={gridStyles.choiceButtonContainer}>
+          <Animated.View
+            style={[
+              gridStyles.choiceButtonContainer,
+              {
+                transform: [{ translateX: translation }],
+              },
+            ]}
+          >
             {shuffledArrayChoices &&
-              shuffledArrayChoices.map((choice) => (
+              shuffledArrayChoices.map((choice, index) => (
                 <TouchableOpacity
                   onPress={() => {
                     if (correctAnswerForPlayerTwo(choice, operationResult)) {
+                      nextQAnimation();
                       playCorrectSoundEffect();
-                      setUpdateQuestions(true);
+                      setUpdateQuestions(!updateQuestions);
                       setPlayerTwoCounter((prev) =>
                         prev === 9 ? setplayerTwoWins(true) : prev + 1
                       );
                     }
                     if (!correctAnswerForPlayerTwo(choice, operationResult)) {
                       playWrongSoundEffect();
-                      setUpdateQuestions(true);
                       setPlayerTwoCounter((prev) =>
                         playerTwoCounter <= 0 ? (prev = 0) : prev - 1
                       );
                     }
                   }}
-                  key={Math.random() * 1500}
+                  key={index}
                   style={gridStyles.choiceButton}
                 >
-                  <Text style={{ color: "white", fontSize: 20 }}>
+                  <Text style={{ color: "white", fontSize: 28 }}>
                     {" "}
                     {choice}{" "}
                   </Text>
                 </TouchableOpacity>
               ))}
-          </View>
+          </Animated.View>
 
           <View style={gridStyles.counter}>
-            <Text style={{ color: "white", fontSize: 18 }}>
+            <Text style={{ color: "white", fontSize: 24 }}>
               {" "}
               {playerTwoCounter}
             </Text>
@@ -279,8 +348,15 @@ const GameScreen = () => {
       >
         <View style={styles.playerOneContainer}>
           <View style={gridStyles.playerOneGrid}>
-            <View style={gridStyles.operation}>
-              <Text style={{ color: "white", fontSize: 28 }}>
+            <Animated.View
+              style={[
+                gridStyles.operation,
+                {
+                  transform: [{ translateX: translation }],
+                },
+              ]}
+            >
+              <Text style={{ color: "white", fontSize: 38 }}>
                 {" "}
                 {numbers.leftHandSideNumber} {""}
                 {operation === "*"
@@ -288,45 +364,60 @@ const GameScreen = () => {
                   : [operation === "/" ? "÷" : operation]}{" "}
                 {numbers.rightHandSideNumber}{" "}
               </Text>
-            </View>
+            </Animated.View>
 
-            <View style={gridStyles.choiceButtonContainer}>
+            <Animated.View
+              style={[
+                gridStyles.choiceButtonContainer,
+                {
+                  transform: [{ translateX: translation }],
+                },
+              ]}
+            >
               {shuffledArrayChoices &&
-                shuffledArrayChoices.map((choice) => (
+                shuffledArrayChoices.map((choice, index) => (
                   <TouchableOpacity
                     onPress={() => {
                       if (correctAnswerForPlayerOne(choice, operationResult)) {
                         playCorrectSoundEffect();
-                        setUpdateQuestions(true);
+                        setUpdateQuestions(!updateQuestions);
                         setPlayerOneCounter((prev) =>
                           prev === 9 ? setplayerOneWins(true) : prev + 1
                         );
+                        nextQAnimation();
+                        counterColor();
                       }
                       if (!correctAnswerForPlayerOne(choice, operationResult)) {
                         playWrongSoundEffect();
-                        setUpdateQuestions(true);
                         setPlayerOneCounter((prev) =>
                           playerOneCounter <= 0 ? (prev = 0) : prev - 1
                         );
                       }
                     }}
-                    key={Math.random() * 1500}
+                    key={index}
                     style={gridStyles.choiceButton}
                   >
-                    <Text style={{ color: "white", fontSize: 20 }}>
+                    <Text style={{ color: "white", fontSize: 28 }}>
                       {" "}
                       {choice}{" "}
                     </Text>
                   </TouchableOpacity>
                 ))}
-            </View>
+            </Animated.View>
 
-            <View style={gridStyles.counter}>
-              <Text style={{ color: "white", fontSize: 18 }}>
+            <Animated.View
+              style={[
+                gridStyles.counter,
+                {
+                  backgroundColor: COLOR,
+                },
+              ]}
+            >
+              <Text style={{ color: "white", fontSize: 24 }}>
                 {" "}
                 {playerOneCounter}
               </Text>
-            </View>
+            </Animated.View>
           </View>
         </View>
       </View>
@@ -402,38 +493,42 @@ const gridStyles = StyleSheet.create({
     flexDirection: "column",
     width: "100%",
     height: "100%",
-    justifyContent: "space-evenly",
+    justifyContent: "space-around",
     alignItems: "center",
     zIndex: -1,
+    marginTop: 15,
   },
   playerTwoGrid: {
     flex: 1,
     width: "100%",
     height: "100%",
-    justifyContent: "space-evenly",
+    justifyContent: "space-around",
     alignItems: "center",
     transform: [{ rotate: "180deg" }],
     backgroundColor: "#14A9B2",
+    marginBottom: 15,
   },
 
   operation: {
-    width: "70%",
-    height: 50,
+    width: "80%",
+    height: 78,
     backgroundColor: "#313f4d",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 10,
+    borderWidth: 4,
+    borderColor: "orange",
   },
   choiceButtonContainer: {
-    width: "80%",
-    height: 60,
+    width: "95%",
+    height: 65,
     justifyContent: "space-evenly",
     flexDirection: "row",
   },
   choiceButton: {
     width: 80,
     height: 60,
-    backgroundColor: "green",
+    backgroundColor: "#5a1a87",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 5,

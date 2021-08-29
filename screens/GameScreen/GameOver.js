@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 
 import {
@@ -11,6 +11,8 @@ import {
 } from "react-native";
 
 const GameOver = () => {
+  const [startGame, setStartGame] = useState(false);
+
   return (
     <SafeAreaView style={styles.container}>
       <View></View>
